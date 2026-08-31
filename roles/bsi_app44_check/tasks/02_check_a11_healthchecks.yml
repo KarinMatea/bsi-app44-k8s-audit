@@ -1,0 +1,39 @@
+---
+# APP.4.4.A11: jeder Container SOLLTE readiness- und liveness-Checks definieren.
+- name: Container ohne livenessProbe ermitteln
+  ansible.builtin.set_fact:
+    bsi_a11_missing_liveness: >-
+      {{
+        bsi_app_pods
+        | map(attribute='spec.containers')
+        | sum(start=[])
+        | rejectattr('livenessProbe', 'defined')
+        | map(attribute='name')
+        | list
+      }}
+
+- name: Container ohne readinessProbe ermitteln
+  ansible.builtin.set_fact:
+    bsi_a11_missing_readiness: >-
+      {{
+        bsi_app_pods
+        | map(attribute='spec.containers')
+        | sum(start=[])
+        | rejectattr('readinessProbe', 'defined')
+        | map(attribute='name')
+        | list
+      }}
+
+- name: Ergebnis A11 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A11': {
+            'status': ((bsi_a11_missing_liveness | length > 0) or (bsi_a11_missing_readiness | length > 0)) | ternary('FINDING', 'OK'),
+            'details': 'Container ohne livenessProbe: ' ~ ((bsi_a11_missing_liveness | unique | join(', ')) if (bsi_a11_missing_liveness | length > 0) else 'keine')
+              ~ '. Container ohne readinessProbe: ' ~ ((bsi_a11_missing_readiness | unique | join(', ')) if (bsi_a11_missing_readiness | length > 0) else 'keine')
+              ~ '. Hinweis: Containername ist nicht eindeutig ueber Namespaces hinweg - bei vielen Treffern lohnt ein direkter kubectl-Blick je Namespace.'
+          }
+        })
+      }}

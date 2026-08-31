@@ -1,0 +1,44 @@
+---
+- name: Anforderungskatalog laden
+  ansible.builtin.include_vars:
+    file: requirements_catalog.yml
+
+- name: Ergebnis-Dictionary initialisieren
+  ansible.builtin.set_fact:
+    bsi_findings: {}
+
+- name: Rohdaten aus dem Cluster einsammeln
+  ansible.builtin.include_tasks: 01_gather_cluster_state.yml
+
+- name: "Check APP.4.4.A1 - Separierung der Anwendungen"
+  ansible.builtin.include_tasks: 02_check_a1_separierung.yml
+
+- name: "Check APP.4.4.A3 - Identitaets- und Berechtigungsmanagement"
+  ansible.builtin.include_tasks: 02_check_a3_rbac.yml
+
+- name: "Check APP.4.4.A4 - Separierung von Pods"
+  ansible.builtin.include_tasks: 02_check_a4_pod_separation.yml
+
+- name: "Check APP.4.4.A7 - Separierung der Netze"
+  ansible.builtin.include_tasks: 02_check_a7_netzseparierung.yml
+
+- name: "Check APP.4.4.A9 - Service-Accounts"
+  ansible.builtin.include_tasks: 02_check_a9_service_accounts.yml
+
+- name: "Check APP.4.4.A11 - Ueberwachung der Container"
+  ansible.builtin.include_tasks: 02_check_a11_healthchecks.yml
+
+- name: "Check APP.4.4.A13 - Automatisierte Auditierung (Policy-Engine vorhanden?)"
+  ansible.builtin.include_tasks: 02_check_a13_admission_policy.yml
+
+- name: "Check APP.4.4.A14 - Dedizierte Nodes"
+  ansible.builtin.include_tasks: 02_check_a14_dedicated_nodes.yml
+
+- name: "Check APP.4.4.A18 - Mikro-Segmentierung"
+  ansible.builtin.include_tasks: 02_check_a18_microsegmentation.yml
+
+- name: "Check APP.4.4.A21 - Regelmaessiger Pod-Restart"
+  ansible.builtin.include_tasks: 02_check_a21_pod_restart.yml
+
+- name: Report generieren
+  ansible.builtin.include_tasks: 03_generate_report.yml

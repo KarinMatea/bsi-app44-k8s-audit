@@ -1,0 +1,37 @@
+---
+# APP.4.4.A7 fordert Whitelisting zwischen Namespaces statt freier Kommunikation.
+# Technisch pruefbar: existiert ueberhaupt eine NetworkPolicy je Anwendungs-Namespace?
+- name: Namespaces mit vorhandenen NetworkPolicies ermitteln
+  ansible.builtin.set_fact:
+    bsi_a7_namespaces_with_netpol: >-
+      {{
+        bsi_raw_netpol.resources
+        | map(attribute='metadata.namespace')
+        | unique
+        | list
+      }}
+
+- name: Namespaces ohne jegliche NetworkPolicy ermitteln
+  ansible.builtin.set_fact:
+    bsi_a7_namespaces_without_netpol: >-
+      {{
+        bsi_app_namespaces
+        | reject('in', bsi_a7_namespaces_with_netpol)
+        | list
+      }}
+
+- name: Ergebnis A7 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A7': {
+            'status': (bsi_a7_namespaces_without_netpol | length > 0) | ternary('FINDING', 'OK'),
+            'details': (bsi_a7_namespaces_without_netpol | length > 0)
+              | ternary(
+                  'Namespaces ganz ohne NetworkPolicy (= keine Netz-Separierung/Whitelisting aktiv): ' ~ (bsi_a7_namespaces_without_netpol | join(', ')) ~ '. WICHTIG: k3s nutzt standardmaessig Flannel als CNI - Flannel setzt NetworkPolicies NICHT durch. Pruefe zusaetzlich manuell, ob ein policy-faehiges CNI (z.B. Calico, Cilium) aktiv ist, sonst wirken selbst vorhandene Policies nicht.',
+                  'Jeder Anwendungs-Namespace hat mindestens eine NetworkPolicy. WICHTIG: pruefe manuell, ob das eingesetzte CNI (bei k3s per Default Flannel) NetworkPolicies ueberhaupt durchsetzt - sonst ist dieses OK nur auf dem Papier.'
+                )
+          }
+        })
+      }}

@@ -1,0 +1,75 @@
+---
+- name: Alle Namespaces abfragen
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Namespace
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_namespaces
+
+- name: Alle Pods (alle Namespaces) abfragen
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_pods
+
+- name: Alle Nodes abfragen
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Node
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_nodes
+
+- name: Alle NetworkPolicies abfragen
+  kubernetes.core.k8s_info:
+    api_version: networking.k8s.io/v1
+    kind: NetworkPolicy
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_netpol
+
+- name: Alle ClusterRoleBindings abfragen
+  kubernetes.core.k8s_info:
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_crb
+
+- name: Alle ServiceAccounts abfragen
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ServiceAccount
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_serviceaccounts
+
+- name: Kyverno/Gatekeeper CRDs abfragen (Policy-Engine-Erkennung)
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    kubeconfig: "{{ bsi_kubeconfig | default(omit) }}"
+    context: "{{ bsi_kube_context | default(omit) }}"
+  register: bsi_raw_crds
+
+- name: Relevante Namespaces (ohne Systemnamespaces) filtern
+  ansible.builtin.set_fact:
+    bsi_app_namespaces: >-
+      {{
+        bsi_raw_namespaces.resources
+        | map(attribute='metadata.name')
+        | reject('in', bsi_excluded_namespaces)
+        | list
+      }}
+
+- name: Pods ausserhalb der Systemnamespaces filtern
+  ansible.builtin.set_fact:
+    bsi_app_pods: >-
+      {{
+        bsi_raw_pods.resources
+        | rejectattr('metadata.namespace', 'in', bsi_excluded_namespaces)
+        | list
+      }}

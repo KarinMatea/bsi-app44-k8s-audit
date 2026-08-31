@@ -1,0 +1,29 @@
+---
+# APP.4.4.A13 (erhoehter Schutzbedarf): automatisches Audit + Durchsetzung von Regeln
+# ueber ein angebundenes Werkzeug. Wir pruefen nur die Grundvoraussetzung: ist
+# ueberhaupt eine Policy-Engine als CRD im Cluster vorhanden?
+- name: Policy-Engine-CRDs suchen (Kyverno/Gatekeeper/Kubewarden)
+  ansible.builtin.set_fact:
+    bsi_a13_policy_crds: >-
+      {{
+        bsi_raw_crds.resources
+        | map(attribute='metadata.name')
+        | select('search', 'kyverno|constraints.gatekeeper|policy.kubewarden')
+        | list
+      }}
+
+- name: Ergebnis A13 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A13': {
+            'status': (bsi_a13_policy_crds | length > 0) | ternary('OK', 'FINDING'),
+            'details': (bsi_a13_policy_crds | length > 0)
+              | ternary(
+                  'Policy-Engine-CRDs gefunden: ' ~ (bsi_a13_policy_crds | join(', ')) ~ '. Hinweis: dies prueft nur die Praesenz, nicht ob die Policies auf enforce statt audit stehen und tatsaechlich Verstoesse abdecken.',
+                  'Keine Policy-Engine (Kyverno/Gatekeeper/Kubewarden) gefunden. Ohne automatisiertes Audit/Enforcement ist A13 nicht erfuellt.'
+                )
+          }
+        })
+      }}

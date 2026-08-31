@@ -1,0 +1,46 @@
+---
+- name: Katalog mit Findings zusammenfuehren (fehlende Eintraege = MANUAL)
+  ansible.builtin.set_fact:
+    bsi_report_rows: >-
+      {{
+        bsi_report_rows | default([]) + [
+          item | combine({
+            'status': (bsi_findings[item.id].status | default('MANUAL')) if item.id in bsi_findings else ('MANUAL' if item.automatable else 'MANUAL'),
+            'details': (bsi_findings[item.id].details | default('Keine automatisierte Pruefung fuer diese Anforderung implementiert - organisatorisch/prozessual, manuelle Bewertung noetig.')) if item.id in bsi_findings else 'Keine automatisierte Pruefung fuer diese Anforderung implementiert - organisatorisch/prozessual, manuelle Bewertung noetig.'
+          })
+        ]
+      }}
+  loop: "{{ bsi_requirements_catalog }}"
+  loop_control:
+    label: "{{ item.id }}"
+
+- name: Zusammenfassung berechnen
+  ansible.builtin.set_fact:
+    bsi_summary:
+      total: "{{ bsi_report_rows | length }}"
+      ok: "{{ bsi_report_rows | selectattr('status', 'equalto', 'OK') | list | length }}"
+      finding: "{{ bsi_report_rows | selectattr('status', 'equalto', 'FINDING') | list | length }}"
+      manual: "{{ bsi_report_rows | selectattr('status', 'equalto', 'MANUAL') | list | length }}"
+      not_applicable: "{{ bsi_report_rows | selectattr('status', 'equalto', 'NOT_APPLICABLE') | list | length }}"
+
+- name: Ausgabeverzeichnis fuer den Report sicherstellen
+  ansible.builtin.file:
+    path: "{{ bsi_report_path | dirname }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+
+- name: Report-Zeitstempel (lesbar) ermitteln
+  ansible.builtin.set_fact:
+    bsi_report_generated_at: "{{ lookup('pipe', 'date -u +%Y-%m-%d\\ %H:%M:%SZ') }}"
+
+- name: Markdown-Report rendern
+  ansible.builtin.template:
+    src: report.md.j2
+    dest: "{{ bsi_report_path }}"
+    mode: "0644"
+  delegate_to: localhost
+
+- name: Ergebnis-Pfad ausgeben
+  ansible.builtin.debug:
+    msg: "Report geschrieben nach: {{ bsi_report_path }} (OK: {{ bsi_summary.ok }}, Findings: {{ bsi_summary.finding }}, Manuell: {{ bsi_summary.manual }}, N/A: {{ bsi_summary.not_applicable }})"

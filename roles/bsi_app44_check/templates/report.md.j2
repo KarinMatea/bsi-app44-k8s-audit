@@ -1,0 +1,59 @@
+# BSI IT-Grundschutz APP.4.4 (Kubernetes) - Compliance-Report
+
+- **Cluster:** {{ bsi_cluster_label }}
+- **Erzeugt:** {{ bsi_report_generated_at }}
+- **Baustein:** APP.4.4 Kubernetes, Edition 2023 (21 Anforderungen)
+- **Umfang:** Nur Abfrage/Bewertung, keine Umsetzung. Dieser Report ersetzt keine
+  vollstaendige IT-Grundschutz-Auditierung durch den/die ISB.
+
+## Zusammenfassung
+
+| Status | Anzahl |
+|---|---|
+| ✅ OK | {{ bsi_summary.ok }} |
+| ❌ FINDING | {{ bsi_summary.finding }} |
+| 🟡 MANUAL (manuelle Pruefung noetig) | {{ bsi_summary.manual }} |
+| ⚪ NOT_APPLICABLE | {{ bsi_summary.not_applicable }} |
+| **Gesamt** | **{{ bsi_summary.total }}** |
+
+{% if bsi_summary.finding | int > 0 %}
+> ⚠️ Es wurden {{ bsi_summary.finding }} technische Findings festgestellt. Details siehe unten.
+{% endif %}
+
+## Basis-Anforderungen (MUSS)
+
+{% for row in bsi_report_rows if row.level == 'B' %}
+### {{ row.id }} - {{ row.title }}
+
+- **Status:** {{ {'OK': '✅ OK', 'FINDING': '❌ FINDING', 'MANUAL': '🟡 MANUAL', 'NOT_APPLICABLE': '⚪ NOT_APPLICABLE'}[row.status] }}
+- **Anforderung (Kurzfassung):** {{ row.summary }}
+- **Ergebnis:** {{ row.details }}
+
+{% endfor %}
+
+## Standard-Anforderungen (SOLLTE)
+
+{% for row in bsi_report_rows if row.level == 'S' %}
+### {{ row.id }} - {{ row.title }}
+
+- **Status:** {{ {'OK': '✅ OK', 'FINDING': '❌ FINDING', 'MANUAL': '🟡 MANUAL', 'NOT_APPLICABLE': '⚪ NOT_APPLICABLE'}[row.status] }}
+- **Anforderung (Kurzfassung):** {{ row.summary }}
+- **Ergebnis:** {{ row.details }}
+
+{% endfor %}
+
+## Anforderungen bei erhoehtem Schutzbedarf (H)
+
+{% for row in bsi_report_rows if row.level == 'H' %}
+### {{ row.id }} - {{ row.title }}
+
+- **Status:** {{ {'OK': '✅ OK', 'FINDING': '❌ FINDING', 'MANUAL': '🟡 MANUAL', 'NOT_APPLICABLE': '⚪ NOT_APPLICABLE'}[row.status] }}
+- **Anforderung (Kurzfassung):** {{ row.summary }}
+- **Ergebnis:** {{ row.details }}
+
+{% endfor %}
+
+---
+
+_Erzeugt mit der Ansible-Rolle `bsi_app44_check`. Quelle des Anforderungskatalogs:
+BSI IT-Grundschutz-Kompendium, Baustein APP.4.4 Kubernetes, Edition 2023._

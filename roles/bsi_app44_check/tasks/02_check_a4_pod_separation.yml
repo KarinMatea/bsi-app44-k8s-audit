@@ -1,0 +1,57 @@
+---
+# APP.4.4.A4 fordert Kernel-Isolation zwischen Pods (Namespaces/cgroups).
+# hostPID/hostNetwork/hostIPC und privileged:true hebeln genau diese Isolation
+# gezielt aus - technisch gut pruefbar.
+- name: Pods mit Host-Namespace-Nutzung ermitteln
+  ansible.builtin.set_fact:
+    bsi_a4_host_ns_pods: >-
+      {{
+        bsi_app_pods
+        | selectattr('spec.hostPID', 'defined')
+        | selectattr('spec.hostPID', 'equalto', true)
+        | map(attribute='metadata.name')
+        | list
+        +
+        bsi_app_pods
+        | selectattr('spec.hostNetwork', 'defined')
+        | selectattr('spec.hostNetwork', 'equalto', true)
+        | map(attribute='metadata.name')
+        | list
+        +
+        bsi_app_pods
+        | selectattr('spec.hostIPC', 'defined')
+        | selectattr('spec.hostIPC', 'equalto', true)
+        | map(attribute='metadata.name')
+        | list
+      }}
+
+- name: Pods mit privilegierten Containern ermitteln
+  ansible.builtin.set_fact:
+    bsi_a4_privileged_pods: >-
+      {{
+        bsi_app_pods
+        | selectattr('spec.containers', 'defined')
+        | selectattr('spec.containers', 'selectattr', 'securityContext.privileged', 'defined')
+        | selectattr('spec.containers', 'selectattr', 'securityContext.privileged', 'equalto', true)
+        | map(attribute='metadata.name')
+        | list
+      }}
+
+- name: Ergebnis A4 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A4': {
+            'status': ((bsi_a4_host_ns_pods | length > 0) or (bsi_a4_privileged_pods | length > 0)) | ternary('FINDING', 'OK'),
+            'details': ((bsi_a4_host_ns_pods | length > 0) or (bsi_a4_privileged_pods | length > 0))
+              | ternary(
+                  'Isolation zwischen Pods durchbrochen. hostPID/hostNetwork/hostIPC: '
+                  ~ ((bsi_a4_host_ns_pods | unique | list) | join(', ') if (bsi_a4_host_ns_pods | length > 0) else 'keine')
+                  ~ '. Privilegierte Container: '
+                  ~ ((bsi_a4_privileged_pods | join(', ')) if (bsi_a4_privileged_pods | length > 0) else 'keine'),
+                  'Keine Pods mit hostPID/hostNetwork/hostIPC oder privilegierten Containern gefunden.'
+                )
+          }
+        })
+      }}

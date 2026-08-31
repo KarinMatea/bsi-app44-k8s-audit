@@ -1,0 +1,47 @@
+---
+# APP.4.4.A21 (erhoehter Schutzbedarf): kein Pod SOLLTE laenger als
+# bsi_pod_max_age_hours (Default 24h) laufen. Ob diese Hoch-Anforderung fuer
+# dich ueberhaupt gilt, ist eine Risikoentscheidung (nur bei erhoehtem Risiko
+# fuer Fremdeinwirkung + sehr hohem Schutzbedarf) - technisch pruefen wir hier
+# trotzdem das Pod-Alter, damit du die Zahlen fuer diese Entscheidung hast.
+- name: Aktuellen Zeitstempel (UTC) im gleichen Format wie creationTimestamp holen
+  ansible.builtin.set_fact:
+    bsi_now_dt: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') | to_datetime('%Y-%m-%dT%H:%M:%SZ') }}"
+
+- name: Pod-Alter in Stunden je Pod berechnen
+  ansible.builtin.set_fact:
+    bsi_a21_pod_ages: >-
+      {{
+        (bsi_a21_pod_ages | default([])) + [{
+          'name': item.metadata.name ~ '/' ~ item.metadata.namespace,
+          'age_hours': ((bsi_now_dt - (item.metadata.creationTimestamp | to_datetime('%Y-%m-%dT%H:%M:%SZ'))).total_seconds() // 3600) | int
+        }]
+      }}
+  loop: "{{ bsi_app_pods }}"
+  when: item.metadata.creationTimestamp is defined
+  loop_control:
+    label: "{{ item.metadata.name }}"
+
+- name: Pods ueber dem erlaubten Maximalalter herausfiltern
+  ansible.builtin.set_fact:
+    bsi_a21_old_pods: >-
+      {{
+        (bsi_a21_pod_ages | default([]))
+        | selectattr('age_hours', 'gt', bsi_pod_max_age_hours | int)
+        | map(attribute='name')
+        | list
+      }}
+
+- name: Ergebnis A21 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A21': {
+            'status': (bsi_a21_old_pods | length > 0) | ternary('FINDING', 'OK'),
+            'details': 'Pods (name/namespace) laenger als ' ~ bsi_pod_max_age_hours ~ 'h ohne Restart: '
+              ~ ((bsi_a21_old_pods | join(', ')) if (bsi_a21_old_pods | length > 0) else 'keine')
+              ~ '. Hinweis: diese Hoch-Anforderung gilt nur bei erhoehtem Risiko fuer Fremdeinwirkung und sehr hohem Schutzbedarf - ob sie fuer dich relevant ist, ist eine Risikoentscheidung, keine rein technische Frage.'
+          }
+        })
+      }}

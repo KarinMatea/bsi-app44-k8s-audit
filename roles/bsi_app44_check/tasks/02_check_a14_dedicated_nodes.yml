@@ -1,0 +1,30 @@
+---
+# APP.4.4.A14 (erhoehter Schutzbedarf): Nodes SOLLTEN dedizierte Aufgaben haben.
+# In einem Ein-Node-Homelab-Cluster ist das naturgemaess nicht erfuellbar - das
+# geben wir transparent als Kontext mit aus, statt es als klassisches FINDING zu framen.
+- name: Node-Anzahl und Rollen-Labels ermitteln
+  ansible.builtin.set_fact:
+    bsi_a14_node_count: "{{ bsi_raw_nodes.resources | length }}"
+    bsi_a14_labeled_role_nodes: >-
+      {{
+        bsi_raw_nodes.resources
+        | selectattr('metadata.labels', 'defined')
+        | selectattr('metadata.labels', 'match', '.*node-role.*')
+        | list | length
+      }}
+
+- name: Ergebnis A14 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A14': {
+            'status': (bsi_a14_node_count | int < 3) | ternary('NOT_APPLICABLE', ((bsi_a14_labeled_role_nodes | int) < (bsi_a14_node_count | int)) | ternary('FINDING', 'OK')),
+            'details': (bsi_a14_node_count | int < 3)
+              | ternary(
+                  'Cluster hat nur ' ~ bsi_a14_node_count ~ ' Node(s). Dedizierte Node-Rollen (Bastion/Management/Storage) sind bei so kleinen Clustern (typisch fuer ein Homelab) nicht sinnvoll umsetzbar - Anforderung wird hier als nicht anwendbar bewertet, nicht als Verstoss.',
+                  'Rollen-Labels (node-role...) auf ' ~ bsi_a14_labeled_role_nodes ~ ' von ' ~ bsi_a14_node_count ~ ' Nodes gefunden.'
+                )
+          }
+        })
+      }}

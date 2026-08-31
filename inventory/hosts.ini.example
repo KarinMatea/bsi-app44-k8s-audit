@@ -1,0 +1,6 @@
+[k8s_auditor]
+training-02 ansible_host=88.198.155.197 ansible_user=training ansible_password=CHANGE_ME
+
+[k8s_auditor:vars]
+ansible_connection=ssh
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

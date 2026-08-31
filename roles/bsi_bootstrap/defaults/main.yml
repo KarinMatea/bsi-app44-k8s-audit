@@ -1,0 +1,36 @@
+---
+# Ob k3s installiert werden soll, falls es noch nicht vorhanden ist.
+bsi_bootstrap_install_k3s: true
+
+# Optionale Extra-Flags fuer den k3s-Installer, z.B. "--write-kubeconfig-mode 644"
+# Standard: single-node, kein HA, Traefik/ServiceLB bleiben an (Default von k3s).
+bsi_bootstrap_k3s_install_exec: ""
+
+# k3s-Channel (stable, latest, testing, oder eine feste Version wie "v1.30.5+k3s1")
+bsi_bootstrap_k3s_channel: "stable"
+
+# Wie lange (Sekunden) auf einen Ready-Node gewartet wird
+bsi_bootstrap_k3s_ready_timeout: 120
+
+# Zusaetzliche Basis-Pakete, die auf einer komplett leeren VM fehlen
+bsi_bootstrap_base_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - ca-certificates
+  - gnupg
+  - python3
+  - python3-pip
+  - python3-venv
+  - unzip
+
+# Python-Pakete, die fuer die kubernetes.core Collection noetig sind
+bsi_bootstrap_python_packages:
+  - kubernetes>=27.2.0
+  - pyyaml>=6.0
+  - jsonpatch
+
+# Ob ~/.kube/config aus der k3s-kubeconfig fuer den ausfuehrenden Benutzer angelegt werden soll
+bsi_bootstrap_setup_kubeconfig: true

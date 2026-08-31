@@ -1,0 +1,29 @@
+---
+# APP.4.4.A3 fordert u.a.: keine anonymen Admin-Aktionen, restriktive Rechtevergabe.
+# Technisch pruefbar: ClusterRoleBindings, die cluster-admin an System-Anonymous/
+# Unauthenticated oder an sehr breite Gruppen (system:authenticated) binden.
+- name: Kritische ClusterRoleBindings identifizieren
+  ansible.builtin.set_fact:
+    bsi_a3_critical_bindings: >-
+      {{
+        bsi_raw_crb.resources
+        | json_query(
+            "[?roleRef.name=='cluster-admin' && subjects[?name=='system:anonymous' || name=='system:unauthenticated' || name=='system:authenticated']].metadata.name"
+          )
+      }}
+
+- name: Ergebnis A3 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A3': {
+            'status': (bsi_a3_critical_bindings | length > 0) | ternary('FINDING', 'OK'),
+            'details': (bsi_a3_critical_bindings | length > 0)
+              | ternary(
+                  'cluster-admin ist an anonyme/zu breite Gruppen gebunden: ' ~ (bsi_a3_critical_bindings | join(', ')) ~ '. Das verstoesst gegen das Verbot anonymer Admin-Aktionen und das Minimalprinzip.',
+                  'Keine ClusterRoleBindings von cluster-admin an anonyme/authenticated-Gruppen gefunden. Hinweis: dies ist nur ein Teilcheck - eine vollstaendige RBAC-Rechteanalyse (z.B. mit rbac-tool/kubectl-who-can) ist damit nicht abgedeckt.'
+                )
+          }
+        })
+      }}

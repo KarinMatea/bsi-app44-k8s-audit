@@ -1,0 +1,136 @@
+---
+# Quelle: BSI IT-Grundschutz-Kompendium, Baustein APP.4.4 Kubernetes, Edition 2023
+# https://www.bsi.bund.de/.../APP_4_4_Kubernetes_Edition_2023.pdf
+#
+# level: B = Basis-Anforderung (MUSS), S = Standard-Anforderung (SOLLTE),
+#        H = Anforderung bei erhoehtem Schutzbedarf (SOLLTE, optional)
+# automatable: ob ein technischer Check gegen die laufende API sinnvoll moeglich ist.
+#              false = Anforderung ist organisatorisch/prozessual und wird als
+#              "MANUAL" ausgewiesen, nicht automatisch als "erfuellt" gewertet.
+
+bsi_requirements_catalog:
+  - id: APP.4.4.A1
+    level: B
+    title: "Planung der Separierung der Anwendungen"
+    summary: "Namespace-/Netz-/Ressourcen-Separierung nach Schutzbedarf geplant."
+    automatable: true
+
+  - id: APP.4.4.A2
+    level: B
+    title: "Planung der Automatisierung mit CI/CD"
+    summary: "CI/CD-Lebenszyklus inkl. Rollen-/Rechtekonzept und Secret-Absicherung geplant."
+    automatable: false
+
+  - id: APP.4.4.A3
+    level: B
+    title: "Identitaets- und Berechtigungsmanagement bei Kubernetes"
+    summary: "Jede Aktion authentifiziert/autorisiert, keine anonymen Admin-Aktionen, minimale Rechte."
+    automatable: true
+
+  - id: APP.4.4.A4
+    level: B
+    title: "Separierung von Pods"
+    summary: "Kernel-Isolationsmechanismen (Namespaces/cgroups) zwischen Pods aktiv, keine privilegierten Pods ohne Grund."
+    automatable: true
+
+  - id: APP.4.4.A5
+    level: B
+    title: "Datensicherung im Cluster"
+    summary: "Backup von Persistent Volumes, Konfiguration, Cluster-Zustand, etcd/Datastore, Registries."
+    automatable: false
+
+  - id: APP.4.4.A6
+    level: S
+    title: "Initialisierung von Pods"
+    summary: "Initialisierung ueber eigene Init-Container, Start erst nach erfolgreicher Init."
+    automatable: false
+
+  - id: APP.4.4.A7
+    level: S
+    title: "Separierung der Netze bei Kubernetes"
+    summary: "Netzsegmentierung, Whitelisting zwischen Namespaces, nur notwendige Ports offen."
+    automatable: true
+
+  - id: APP.4.4.A8
+    level: S
+    title: "Absicherung von Konfigurationsdateien bei Kubernetes"
+    summary: "Konfigurationsdateien versioniert, Zugriffsrechte auf Configs/Secrets minimal vergeben."
+    automatable: false
+
+  - id: APP.4.4.A9
+    level: S
+    title: "Nutzung von Kubernetes Service-Accounts"
+    summary: "Kein default-Service-Account fuer Anwendungen, eigene SAs mit minimalen Rechten je Anwendung."
+    automatable: true
+
+  - id: APP.4.4.A10
+    level: S
+    title: "Absicherung von Prozessen der Automatisierung"
+    summary: "CI/CD-Prozesse arbeiten mit minimalen Rechten, getrennt nach Benutzergruppen."
+    automatable: false
+
+  - id: APP.4.4.A11
+    level: S
+    title: "Ueberwachung der Container"
+    summary: "Readiness- und Liveness-Checks je Container definiert und sinnvoll konfiguriert."
+    automatable: true
+
+  - id: APP.4.4.A12
+    level: S
+    title: "Absicherung der Infrastruktur-Anwendungen"
+    summary: "Registry/Automatisierung/Storage-Software: eigene Accounts, TLS, minimale Rechte, Logging, Backup."
+    automatable: false
+
+  - id: APP.4.4.A13
+    level: H
+    title: "Automatisierte Auditierung der Konfiguration"
+    summary: "Automatisches Audit der Cluster-/Pod-Konfiguration gegen Benchmarks, Durchsetzung per Policy-Tool."
+    automatable: true
+
+  - id: APP.4.4.A14
+    level: H
+    title: "Verwendung dedizierter Nodes"
+    summary: "Nodes mit dedizierten Rollen (Bastion/Management/Storage), keine Mischnutzung."
+    automatable: true
+
+  - id: APP.4.4.A15
+    level: H
+    title: "Trennung von Anwendungen auf Node- und Cluster-Ebene"
+    summary: "Anwendungen mit sehr hohem Schutzbedarf auf eigenen Clustern/Nodes."
+    automatable: false
+
+  - id: APP.4.4.A16
+    level: H
+    title: "Verwendung von Operatoren"
+    summary: "Betriebsautomatisierung kritischer Anwendungen ueber Operatoren."
+    automatable: false
+
+  - id: APP.4.4.A17
+    level: H
+    title: "Attestierung von Nodes"
+    summary: "Kryptografischer Nachweis der Node-Integritaet (z. B. TPM) vor Cluster-Aufnahme."
+    automatable: false
+
+  - id: APP.4.4.A18
+    level: H
+    title: "Verwendung von Mikro-Segmentierung"
+    summary: "NetworkPolicies auch innerhalb eines Namespace, granular nach Service/Label/SA."
+    automatable: true
+
+  - id: APP.4.4.A19
+    level: H
+    title: "Hochverfuegbarkeit von Kubernetes"
+    summary: "Ausfallsicherer Betrieb ueber mehrere Standorte/Brandabschnitte."
+    automatable: false
+
+  - id: APP.4.4.A20
+    level: H
+    title: "Verschluesselte Datenhaltung bei Pods"
+    summary: "Dateisysteme von Control-Plane-Datastore (etcd/sqlite) und Anwendungsdaten verschluesselt."
+    automatable: false
+
+  - id: APP.4.4.A21
+    level: H
+    title: "Regelmaessiger Restart von Pods"
+    summary: "Pods werden bei entsprechendem Schutzbedarf regelmaessig neu gestartet (max. 24h Laufzeit)."
+    automatable: true

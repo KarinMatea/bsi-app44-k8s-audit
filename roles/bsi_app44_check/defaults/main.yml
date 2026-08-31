@@ -1,0 +1,24 @@
+---
+# Pfad zur kubeconfig. Leer lassen = Standardpfad (~/.kube/config) bzw. KUBECONFIG-Env.
+bsi_kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default(omit, true) }}"
+
+# Kontext, falls kubeconfig mehrere Cluster enthaelt (leer = current-context)
+# bsi_kube_context: ""
+context: "{{ bsi_kube_context | default(omit, true) }}"
+kubeconfig: "{{ bsi_kubeconfig | default(omit, true) }}"
+
+# Namespaces, die von den Checks ausgenommen werden (Systemkomponenten)
+bsi_excluded_namespaces:
+  - kube-system
+  - kube-public
+  - kube-node-lease
+
+# Ab welchem Pod-Alter (Stunden) A.21 "Regelmaessiger Restart" als Finding gilt.
+# Nur relevant, wenn du diese "Hoch"-Anforderung ueberhaupt in Scope nimmst.
+bsi_pod_max_age_hours: 24
+
+# Wo der fertige Report abgelegt wird
+bsi_report_path: "{{ playbook_dir }}/reports/bsi-app44-report_{{ ansible_date_time.iso8601_basic_short | default(lookup('pipe','date +%Y%m%dT%H%M%S')) }}.md"
+
+# Name des Clusters/der Umgebung, taucht im Report-Header auf
+bsi_cluster_label: "k3s-homelab"

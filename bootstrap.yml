@@ -1,0 +1,13 @@
+---
+# Einmalig ausfuehren, um eine komplett leere VM startklar zu machen:
+# Basis-Pakete, k3s (Kubernetes), kubeconfig, Python-/Ansible-Abhaengigkeiten
+# fuer den anschliessenden BSI-APP.4.4-Check (playbook.yml).
+#
+# Nutzung:
+#   ansible-playbook bootstrap.yml --ask-become-pass
+#   (oder ohne --ask-become-pass, falls passwordless sudo eingerichtet ist)
+- name: VM fuer k3s + BSI-Compliance-Check vorbereiten
+  hosts: k8s_auditor
+  gather_facts: true
+  roles:
+    - bsi_bootstrap

@@ -1,0 +1,29 @@
+---
+# APP.4.4.A1 fordert eine geplante Trennung der Anwendungen ueber Namespaces.
+# Technisch pruefbares Teilstueck: laufen Workloads im "default"-Namespace,
+# statt in eigenen, dem Schutzbedarf entsprechenden Namespaces?
+- name: Pods im default-Namespace ermitteln
+  ansible.builtin.set_fact:
+    bsi_a1_default_ns_pods: >-
+      {{
+        bsi_raw_pods.resources
+        | selectattr('metadata.namespace', 'equalto', 'default')
+        | map(attribute='metadata.name')
+        | list
+      }}
+
+- name: Ergebnis A1 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A1': {
+            'status': (bsi_a1_default_ns_pods | length > 0) | ternary('FINDING', 'OK'),
+            'details': (bsi_a1_default_ns_pods | length > 0)
+              | ternary(
+                  (bsi_a1_default_ns_pods | length | string) ~ ' Pod(s) laufen im default-Namespace statt in einem dedizierten, schutzbedarfsgerechten Namespace: ' ~ (bsi_a1_default_ns_pods | join(', ')),
+                  'Keine Workloads im default-Namespace gefunden. Hinweis: dies prueft nur die Namespace-Trennung, nicht die dahinterliegende Planung (Netz-/CPU-/Speicherseparierung, Schutzbedarfszuordnung).'
+                )
+          }
+        })
+      }}

@@ -1,0 +1,114 @@
+---
+- name: APT-Cache aktualisieren
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Basis-Pakete installieren (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "{{ bsi_bootstrap_base_packages }}"
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Basis-Pakete installieren (RHEL/Fedora)
+  ansible.builtin.dnf:
+    name: "{{ bsi_bootstrap_base_packages }}"
+    state: present
+  become: true
+  when: ansible_facts['os_family'] in ['RedHat']
+
+- name: Pruefen, ob k3s bereits installiert ist
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: bsi_k3s_binary
+
+- name: k3s installieren (offizielles Install-Script)
+  ansible.builtin.shell: >
+    curl -sfL https://get.k3s.io
+    | INSTALL_K3S_CHANNEL={{ bsi_bootstrap_k3s_channel }}
+      INSTALL_K3S_EXEC="{{ bsi_bootstrap_k3s_install_exec }}"
+      sh -s -
+  become: true
+  when:
+    - bsi_bootstrap_install_k3s
+    - not bsi_k3s_binary.stat.exists
+  register: bsi_k3s_install
+  changed_when: true
+
+- name: Auf laufenden k3s-Service warten
+  ansible.builtin.systemd:
+    name: k3s
+    state: started
+    enabled: true
+  become: true
+  when: bsi_bootstrap_install_k3s
+
+- name: Warten, bis der Node den Status "Ready" hat
+  ansible.builtin.command: k3s kubectl get nodes --no-headers
+  become: true
+  register: bsi_k3s_node_status
+  until: "'Ready' in bsi_k3s_node_status.stdout"
+  retries: "{{ (bsi_bootstrap_k3s_ready_timeout | int) // 5 }}"
+  delay: 5
+  changed_when: false
+  when: bsi_bootstrap_install_k3s
+
+- name: ~/.kube Verzeichnis anlegen
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.kube"
+    state: directory
+    mode: "0700"
+  when: bsi_bootstrap_setup_kubeconfig
+
+- name: kubeconfig von k3s fuer den aktuellen Benutzer bereitstellen
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ ansible_env.HOME }}/.kube/config"
+    remote_src: true
+    mode: "0600"
+    owner: "{{ ansible_env.USER | default(omit) }}"
+  become: true
+  when: bsi_bootstrap_setup_kubeconfig
+
+- name: Eigentuemer der kubeconfig korrigieren (falls per become root geschrieben)
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.kube/config"
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+    mode: "0600"
+  become: true
+  when:
+    - bsi_bootstrap_setup_kubeconfig
+    - ansible_env.USER is defined
+
+- name: Python-Abhaengigkeiten fuer kubernetes.core installieren
+  ansible.builtin.pip:
+    name: "{{ bsi_bootstrap_python_packages }}"
+    executable: pip3
+    extra_args: "--break-system-packages"
+  become: true
+  register: bsi_pip_install
+  failed_when:
+    - bsi_pip_install is failed
+    - "'break-system-packages' not in (bsi_pip_install.msg | default(''))"
+
+- name: Ansible-Collection kubernetes.core installieren
+  ansible.builtin.command: "ansible-galaxy collection install -r {{ playbook_dir }}/requirements.yml"
+  changed_when: "'was installed successfully' in bsi_galaxy_install.stdout"
+  register: bsi_galaxy_install
+
+- name: Kurzer Funktionstest - kubectl-Zugriff pruefen
+  ansible.builtin.command: kubectl get nodes
+  environment:
+    KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
+  register: bsi_kubectl_test
+  changed_when: false
+
+- name: Ergebnis des Bootstraps ausgeben
+  ansible.builtin.debug:
+    msg:
+      - "k3s Node-Status:"
+      - "{{ bsi_kubectl_test.stdout_lines }}"

@@ -1,0 +1,7 @@
+inventory/hosts.ini
+inventory/*.ini
+*.retry
+reports/*.md
+.ansible/
+__pycache__/
+*.pyc

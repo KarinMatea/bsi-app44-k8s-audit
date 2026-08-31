@@ -1,0 +1,42 @@
+---
+# APP.4.4.A18 (erhoehter Schutzbedarf): Mikrosegmentierung auch INNERHALB eines
+# Namespace. Das laesst sich nicht vollstaendig automatisiert bewerten (dazu
+# muesste man jede NetworkPolicy-Regel inhaltlich pruefen). Der Grobcheck hier
+# deckt nur den offensichtlichsten Fall ab: Namespaces mit mehreren Pods, die
+# ueberhaupt keine NetworkPolicy haben - dort kann es zwangslaeufig auch keine
+# Segmentierung innerhalb des Namespace geben.
+- name: Namespace-zu-Podanzahl Mapping bauen
+  ansible.builtin.set_fact:
+    bsi_a18_ns_podcount_map: "{{ dict(_ns_names | zip(_ns_counts)) }}"
+  vars:
+    _grouped: "{{ bsi_app_pods | groupby('metadata.namespace') }}"
+    _ns_names: "{{ _grouped | map(attribute='0') | list }}"
+    _ns_counts: "{{ _grouped | map(attribute='1') | map('length') | list }}"
+
+- name: Namespaces mit mehreren Pods aber ohne jede NetworkPolicy ermitteln
+  ansible.builtin.set_fact:
+    bsi_a18_under_segmented_ns: >-
+      {{
+        bsi_a18_ns_podcount_map
+        | dict2items
+        | selectattr('value', 'gt', 1)
+        | map(attribute='key')
+        | reject('in', bsi_a7_namespaces_with_netpol | default([]))
+        | list
+      }}
+
+- name: Ergebnis A18 festhalten
+  ansible.builtin.set_fact:
+    bsi_findings: >-
+      {{
+        bsi_findings | combine({
+          'APP.4.4.A18': {
+            'status': (bsi_a18_under_segmented_ns | length > 0) | ternary('FINDING', 'MANUAL'),
+            'details': (bsi_a18_under_segmented_ns | length > 0)
+              | ternary(
+                  'Namespaces mit mehreren Pods, aber ganz ohne NetworkPolicy (also erst recht keine Mikro-Segmentierung innerhalb des Namespace): ' ~ (bsi_a18_under_segmented_ns | join(', ')) ~ '.',
+                  'Grobcheck unauffaellig. Die eigentliche Tiefe von A18 (Segmentierung ueber Service-Name/Labels/SA/Zertifikate innerhalb eines Namespace) laesst sich nur durch manuelle Durchsicht der einzelnen NetworkPolicy-Regeln bewerten, nicht rein durch Zaehlen - daher MANUAL.'
+                )
+          }
+        })
+      }}

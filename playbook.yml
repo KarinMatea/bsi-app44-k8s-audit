@@ -1,0 +1,11 @@
+---
+# BSI IT-Grundschutz APP.4.4 (Kubernetes) - Compliance-Abfrage gegen einen k3s-Cluster
+#
+# Wichtig: Dieses Playbook AENDERT NICHTS am Cluster. Es liest ausschliesslich
+# Zustand aus (kubectl get / k8s_info) und bewertet ihn gegen die Anforderungen
+# des Bausteins. Umsetzung/Remediation ist bewusst nicht Teil dieser Rolle.
+- name: BSI APP.4.4 Kubernetes Compliance-Check
+  hosts: k8s_auditor
+  gather_facts: false
+  roles:
+    - bsi_app44_check
