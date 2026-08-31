@@ -98,17 +98,7 @@ Prüfen, ob es geklappt hat:
 ansible --version
 ```
 
-## 4. Projekt auf die VM bringen
-
-Entpacke das Projekt-Archiv auf der VM (z. B. per `scp` hochladen oder
-später direkt aus deinem GitHub-Repo klonen):
-
-```bash
-unzip bsi-app44-k8s-audit.zip
-cd bsi-app44-k8s-audit
-```
-
-## 5. Bootstrap ausführen (k3s + Tools installieren)
+## 4. Bootstrap ausführen (k3s + Tools installieren)
 
 ```bash
 ansible-playbook bootstrap.yml --ask-become-pass
@@ -153,7 +143,7 @@ kein Grund zur Sorge.
   ob die Datei dir gehört (`whoami` vs. Owner-Spalte). Notfalls manuell
   fixen: `sudo chown $(whoami):$(whoami) ~/.kube/config`.
 
-## 6. Compliance-Check laufen lassen
+## 5. Compliance-Check laufen lassen
 
 Jetzt, wo k3s läuft, kannst du den eigentlichen BSI-APP.4.4-Check
 ausführen - **ohne `sudo`**, da er nur lesend über die Kubernetes-API
@@ -165,7 +155,7 @@ ansible-playbook playbook.yml
 
 Das Ergebnis liegt danach unter `reports/bsi-app44-report_<timestamp>.md`.
 
-## 7. Report lesen
+## 6. Report lesen
 
 Öffne die generierte `.md`-Datei. Sie ist in drei Abschnitte gegliedert
 (Basis-/Standard-/Anforderungen bei erhöhtem Schutzbedarf), jede
@@ -179,7 +169,7 @@ Anforderung hat einen Status:
 - ⚪ **NOT_APPLICABLE** - Anforderung passt nicht auf dieses Setup (z. B.
   "dedizierte Nodes" bei einem Single-Node-Cluster)
 
-## 8. Als Git-Projekt sichern
+## 7. Als Git-Projekt sichern
 
 ```bash
 git init
@@ -194,10 +184,3 @@ git remote add origin https://github.com/<dein-user>/<dein-repo>.git
 git branch -M main
 git push -u origin main
 ```
-
-## 9. Was kommt danach?
-
-Diese Anleitung deckt bewusst nur **Setup + Abfrage** ab. Umsetzung der
-Findings (z. B. NetworkPolicies anlegen, RBAC verschärfen, Kyverno für
-A13 draufinstallieren) ist ein eigenes, späteres Projekt - siehe
-"Nächste Schritte" in der `README.md`.
