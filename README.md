@@ -7,16 +7,7 @@ Anforderungen des BSI IT-Grundschutz-Bausteins **APP.4.4 Kubernetes** (Edition
 **Scope: nur Abfrage.** Es wird nichts am Cluster verändert. Umsetzung/Remediation
 ist bewusst nicht Teil dieses Projekts (kommt später).
 
-## Was die Rolle NICHT kann
-
-Von den 21 Anforderungen sind viele organisatorisch/prozessual (Planung,
-Backup-Konzept, Betriebsdokumentation, Hochverfügbarkeit über
-Brandabschnitte, Node-Attestierung per TPM, ...). Die lassen sich nicht per
-API-Query beantworten. Diese Anforderungen tauchen im Report als **🟡 MANUAL**
-auf – bewusst, damit der Report nicht etwas als "erfüllt" ausweist, das nur
-technisch nicht widerlegt werden konnte.
-
-Automatisiert geprüft werden aktuell:
+## Automatisiert geprüft werden aktuell:
 
 | ID | Anforderung | Was geprüft wird |
 |---|---|---|
@@ -33,6 +24,15 @@ Automatisiert geprüft werden aktuell:
 
 Alle anderen (A2, A5, A6, A8, A10, A12, A15, A16, A17, A19, A20) sind als
 `automatable: false` markiert und erscheinen als MANUAL.
+
+Was die Role nicht kann:
+
+Von den 21 Anforderungen sind viele organisatorisch/prozessual (Planung,
+Backup-Konzept, Betriebsdokumentation, Hochverfügbarkeit über
+Brandabschnitte, Node-Attestierung per TPM, ...). Die lassen sich nicht per
+API-Query beantworten. Diese Anforderungen tauchen im Report als **🟡 MANUAL**
+auf – bewusst, damit der Report nicht etwas als "erfüllt" ausweist, das nur
+technisch nicht widerlegt werden konnte.
 
 **Wichtiger Hinweis zu k3s:** k3s nutzt standardmäßig **Flannel** als CNI.
 Flannel setzt NetworkPolicies **nicht durch** – selbst wenn A7/A18 technisch
