@@ -5,3 +5,6 @@ reports/*.md
 .ansible/
 __pycache__/
 *.pyc
+inventory/hosts.ini
+*.retry
+reports/*.md

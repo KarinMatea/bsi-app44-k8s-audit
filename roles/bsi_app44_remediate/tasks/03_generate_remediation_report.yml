@@ -1,0 +1,7 @@
+---
+- name: Remediation-Zusammenfassung anzeigen
+  ansible.builtin.debug:
+    msg:
+      - "=== BSI APP.4.4 Remediation abgeschlossen ==="
+      - "Modus: {{ 'DRY-RUN (keine Aenderungen)' if bsi_remediate_dry_run | bool else 'ECHTE AUSFUEHRUNG' }}"
+      - "Bearbeitete Anforderungen: {{ bsi_remediate_targets }}"

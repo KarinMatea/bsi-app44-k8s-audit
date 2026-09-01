@@ -1,0 +1,17 @@
+---
+bsi_remediate_dry_run: true
+
+bsi_remediate_targets:
+  - APP.4.4.A3
+  - APP.4.4.A7
+  - APP.4.4.A9
+  - APP.4.4.A13
+  - APP.4.4.A21
+
+bsi_excluded_namespaces:
+  - kube-system
+  - kube-public
+  - kube-node-lease
+
+bsi_kyverno_helm_repo_url: "https://kyverno.github.io/kyverno/"
+bsi_kyverno_namespace: "kyverno"

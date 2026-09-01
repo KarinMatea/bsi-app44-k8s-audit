@@ -1,0 +1,71 @@
+---
+- name: A7 - Namespace-Namen aus Namespace-Objekten extrahieren
+  ansible.builtin.set_fact:
+    bsi_a7_all_namespaces: >-
+      {{
+        bsi_raw_namespaces.resources
+        | map(attribute='metadata.name')
+        | reject('in', bsi_excluded_namespaces)
+        | list
+      }}
+
+- name: A7 - Namespaces mit bereits existierender NetworkPolicy ermitteln
+  ansible.builtin.set_fact:
+    bsi_a7_namespaces_with_netpol: >-
+      {{
+        bsi_raw_networkpolicies.resources
+        | map(attribute='metadata.namespace')
+        | unique
+        | list
+      }}
+
+- name: A7 - Betroffene Namespaces ohne jede NetworkPolicy ermitteln
+  ansible.builtin.set_fact:
+    bsi_a7_affected_namespaces: >-
+      {{
+        bsi_a7_all_namespaces
+        | reject('in', bsi_a7_namespaces_with_netpol)
+        | list
+      }}
+
+- name: A7 - Betroffene Namespaces anzeigen
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'DRY-RUN: wuerde default-deny NetworkPolicy anlegen in: ' if bsi_remediate_dry_run | bool else 'Lege jetzt an in: ' }}
+      {{ bsi_a7_affected_namespaces | default([]) }}
+
+- name: "A7 - Default-Deny NetworkPolicy anlegen (Ingress+Egress)"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: bsi-app44-default-deny
+        namespace: "{{ item }}"
+      spec:
+        podSelector: {}
+        policyTypes:
+          - Ingress
+          - Egress
+  loop: "{{ bsi_a7_affected_namespaces }}"
+  when:
+    - not bsi_remediate_dry_run | bool
+    - bsi_a7_affected_namespaces | length > 0
+  register: bsi_a7_netpol_result
+
+- name: A7 - Hinweis zu NetworkPolicy-Enforcement ausgeben
+  ansible.builtin.debug:
+    msg: >-
+      HINWEIS: k3s nutzt standardmaessig Flannel als CNI. Flannel selbst
+      implementiert KEIN NetworkPolicy-Enforcement. k3s installiert jedoch
+      zusaetzlich den eingebauten kube-router Network-Policy-Controller,
+      der unabhaengig von Flannel laeuft und Default-Deny-Policies aktiv
+      durchsetzt (per iptables REJECT-Regeln). Wirksamkeit wurde am
+      2026-09-01 per Verbindungstest verifiziert (Connection refused
+      zwischen Pods im default-Namespace trotz laufendem Zieldienst).
+      Empfehlung: Enforcement bei jedem k3s-Upgrade oder -Reinstall erneut
+      pruefen, da --disable-network-policy dies deaktivieren wuerde.
+  when:
+    - not bsi_remediate_dry_run | bool
+    - bsi_a7_affected_namespaces | length > 0

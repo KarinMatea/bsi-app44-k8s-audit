@@ -1,0 +1,26 @@
+---
+- name: Aktuellen Cluster-Zustand ermitteln (Findings neu pruefen)
+  ansible.builtin.include_tasks: 01_gather_cluster_state.yml
+
+- name: A3 - RBAC-Finding beheben
+  ansible.builtin.include_tasks: 02_remediate_a3_rbac.yml
+  when: "'APP.4.4.A3' in bsi_remediate_targets"
+
+- name: A7 - Netzseparierung beheben
+  ansible.builtin.include_tasks: 02_remediate_a7_netpol.yml
+  when: "'APP.4.4.A7' in bsi_remediate_targets"
+
+- name: A9 - Service-Accounts beheben
+  ansible.builtin.include_tasks: 02_remediate_a9_serviceaccounts.yml
+  when: "'APP.4.4.A9' in bsi_remediate_targets"
+
+- name: A13 - Policy-Engine installieren
+  ansible.builtin.include_tasks: 02_remediate_a13_policy_engine.yml
+  when: "'APP.4.4.A13' in bsi_remediate_targets"
+
+- name: A21 - Pod-Restart durchfuehren
+  ansible.builtin.include_tasks: 02_remediate_a21_pod_restart.yml
+  when: "'APP.4.4.A21' in bsi_remediate_targets"
+
+- name: Remediation-Report generieren
+  ansible.builtin.include_tasks: 03_generate_remediation_report.yml

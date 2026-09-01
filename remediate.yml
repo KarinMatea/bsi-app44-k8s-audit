@@ -1,0 +1,6 @@
+---
+- name: BSI APP.4.4 Kubernetes Remediation
+  hosts: k8s_auditor
+  gather_facts: false
+  roles:
+    - bsi_app44_remediate

@@ -1,0 +1,20 @@
+---
+- name: ServiceAccounts clusterweit abfragen
+  kubernetes.core.k8s_info:
+    kind: ServiceAccount
+  register: bsi_raw_serviceaccounts
+
+- name: NetworkPolicies clusterweit abfragen
+  kubernetes.core.k8s_info:
+    kind: NetworkPolicy
+  register: bsi_raw_networkpolicies
+
+- name: Namespaces abfragen
+  kubernetes.core.k8s_info:
+    kind: Namespace
+  register: bsi_raw_namespaces
+
+- name: ClusterRoleBindings abfragen
+  kubernetes.core.k8s_info:
+    kind: ClusterRoleBinding
+  register: bsi_raw_clusterrolebindings
