@@ -1,5 +1,5 @@
 [k8s_auditor]
-training-02 ansible_host=46.225.150.76 ansible_user=training ansible_password=033GfiSQ4rb1j2N%z16-xzRw
+[VM name] ansible_host=[] ansible_user=[] ansible_password=[]
 
 [k8s_auditor:vars]
 ansible_connection=ssh
