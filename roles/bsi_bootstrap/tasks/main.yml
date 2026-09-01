@@ -26,17 +26,13 @@
   register: bsi_k3s_binary
 
 - name: k3s installieren (offizielles Install-Script)
-  ansible.builtin.shell: >
-    curl -sfL https://get.k3s.io
-    | INSTALL_K3S_CHANNEL={{ bsi_bootstrap_k3s_channel }}
-      INSTALL_K3S_EXEC="{{ bsi_bootstrap_k3s_install_exec }}"
-      sh -s -
-  become: true
-  when:
-    - bsi_bootstrap_install_k3s
-    - not bsi_k3s_binary.stat.exists
-  register: bsi_k3s_install
-  changed_when: true
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.30.6+k3s1" sh -s -
+  args:
+    creates: /usr/local/bin/k3s
+  async: 180
+  poll: 5
+  register: bsi_k3s_install_result
 
 - name: Auf laufenden k3s-Service warten
   ansible.builtin.systemd:
@@ -63,15 +59,34 @@
     mode: "0700"
   when: bsi_bootstrap_setup_kubeconfig
 
-- name: kubeconfig von k3s fuer den aktuellen Benutzer bereitstellen
+- name: Kubeconfig-Verzeichnis für Benutzer anlegen
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+  become: true
+
+- name: k3s.yaml in Benutzer-Kubeconfig kopieren
   ansible.builtin.copy:
     src: /etc/rancher/k3s/k3s.yaml
-    dest: "{{ ansible_env.HOME }}/.kube/config"
+    dest: "/home/{{ ansible_user }}/.kube/config"
     remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0600"
-    owner: "{{ ansible_env.USER | default(omit) }}"
   become: true
-  when: bsi_bootstrap_setup_kubeconfig
+  register: bsi_kubeconfig_copy
+  retries: 5
+  delay: 3
+  until: bsi_kubeconfig_copy is succeeded
+
+- name: Warten bis k3s.yaml existiert
+  ansible.builtin.wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 120
+
 
 - name: Eigentuemer der kubeconfig korrigieren (falls per become root geschrieben)
   ansible.builtin.file:
