@@ -43,7 +43,7 @@
   when: bsi_bootstrap_install_k3s
 
 - name: Warten, bis der Node den Status "Ready" hat
-  ansible.builtin.command: k3s kubectl get nodes --no-headers
+  ansible.builtin.command: /usr/local/bin/k3s kubectl get nodes --no-headers
   become: true
   register: bsi_k3s_node_status
   until: "'Ready' in bsi_k3s_node_status.stdout"
@@ -61,20 +61,20 @@
 
 - name: Kubeconfig-Verzeichnis für Benutzer anlegen
   ansible.builtin.file:
-    path: "/home/{{ ansible_user }}/.kube"
+    path: "{{ ansible_env.HOME }}/.kube"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
     mode: "0700"
   become: true
 
 - name: k3s.yaml in Benutzer-Kubeconfig kopieren
   ansible.builtin.copy:
     src: /etc/rancher/k3s/k3s.yaml
-    dest: "/home/{{ ansible_user }}/.kube/config"
+    dest: "{{ ansible_env.HOME }}/.kube/config"
     remote_src: true
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
     mode: "0600"
   become: true
   register: bsi_kubeconfig_copy
@@ -116,7 +116,7 @@
   register: bsi_galaxy_install
 
 - name: Kurzer Funktionstest - kubectl-Zugriff pruefen
-  ansible.builtin.command: kubectl get nodes
+  ansible.builtin.command: /usr/local/bin/kubectl get nodes
   environment:
     KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
   register: bsi_kubectl_test
