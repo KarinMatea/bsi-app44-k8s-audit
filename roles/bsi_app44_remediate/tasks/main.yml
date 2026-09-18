@@ -1,4 +1,5 @@
----
+# roles/bsi_app44_remediate/tasks/main.yml
+
 - name: Aktuellen Cluster-Zustand ermitteln (Findings neu pruefen)
   ansible.builtin.include_tasks: 01_gather_cluster_state.yml
 
@@ -14,7 +15,7 @@
   ansible.builtin.include_tasks: 02_remediate_a9_serviceaccounts.yml
   when: "'APP.4.4.A9' in bsi_remediate_targets"
 
-- name: A13 - Policy-Engine installieren
+- name: A13 - Policy-Engine installieren (Audit-Modus)
   ansible.builtin.include_tasks: 02_remediate_a13_policy_engine.yml
   when: "'APP.4.4.A13' in bsi_remediate_targets"
 

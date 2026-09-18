@@ -1,0 +1,79 @@
+---
+# roles/bsi_app44_remediate/tasks/02_remediate_a13_policy_engine.yml
+#
+# Behebung fuer APP.4.4.A13 (Policy-Engine im Audit-Modus).
+
+- name: "A13 Remediation | Vorpruefung: ist Kyverno bereits installiert?"
+  block:
+    - name: "A13 Remediation | Kyverno-Namespace abfragen"
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: "{{ bsi_kyverno_namespace }}"
+      register: bsi_a13_kyverno_namespace
+
+    - name: "A13 Remediation | Kyverno-CRD abfragen"
+      kubernetes.core.k8s_info:
+        api_version: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        name: clusterpolicies.kyverno.io
+      register: bsi_a13_kyverno_crd
+
+    - name: "A13 Remediation | Fakt setzen: Kyverno bereits vorhanden?"
+      ansible.builtin.set_fact:
+        bsi_a13_kyverno_present: >-
+          {{
+            (bsi_a13_kyverno_namespace.resources | length > 0)
+            and
+            (bsi_a13_kyverno_crd.resources | length > 0)
+          }}
+
+    - name: "A13 Remediation | Vorpruefungs-Ergebnis ausgeben"
+      ansible.builtin.debug:
+        msg:
+          - "Kyverno-Namespace vorhanden: {{ bsi_a13_kyverno_namespace.resources | length > 0 }}"
+          - "Kyverno-CRD (ClusterPolicy) vorhanden: {{ bsi_a13_kyverno_crd.resources | length > 0 }}"
+          - "==> Kyverno gilt als bereits installiert: {{ bsi_a13_kyverno_present }}"
+
+- name: "A13 Remediation | Hinweis: DRY-RUN aktiv, keine Installation"
+  ansible.builtin.debug:
+    msg: >-
+      DRY-RUN: Kyverno wuerde jetzt per Helm in Namespace
+      '{{ bsi_kyverno_namespace }}' installiert werden
+      (Repo: {{ bsi_kyverno_helm_repo_url }}), im Audit-Modus
+      (validationFailureAction=Audit). Es wird NICHTS veraendert,
+      da bsi_remediate_dry_run=true gesetzt ist.
+  when:
+    - not bsi_a13_kyverno_present
+    - bsi_remediate_dry_run | bool
+
+- name: "A13 Remediation | Kyverno Helm-Repo hinzufuegen (nur ohne Dry-Run)"
+  kubernetes.core.helm_repository:
+    name: kyverno
+    repo_url: "{{ bsi_kyverno_helm_repo_url }}"
+  when:
+    - not bsi_a13_kyverno_present
+    - not (bsi_remediate_dry_run | bool)
+
+- name: "A13 Remediation | Kyverno per Helm installieren im Audit-Modus (nur ohne Dry-Run)"
+  kubernetes.core.helm:
+    name: kyverno
+    chart_ref: kyverno/kyverno
+    release_namespace: "{{ bsi_kyverno_namespace }}"
+    create_namespace: true
+    wait: true
+    values:
+      admissionController:
+        replicas: 1
+      # Globaler Default fuer alle mitgelieferten Validierungsregeln:
+      # nur protokollieren, niemals blockieren.
+      config:
+        validationFailureAction: Audit
+  when:
+    - not bsi_a13_kyverno_present
+    - not (bsi_remediate_dry_run | bool)
+
+- name: "A13 Remediation | Bereits vorhanden - nichts zu tun"
+  ansible.builtin.debug:
+    msg: "Kyverno ist bereits installiert, Remediation fuer A13 wird uebersprungen."
+  when: bsi_a13_kyverno_present
